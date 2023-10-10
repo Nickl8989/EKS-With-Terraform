@@ -1,8 +1,8 @@
-# **Introduction of my work**
+# **Introduction**
 
 Creation an Amazon EKS cluster on AWS using Terraform modules. The cluster must use Kubernetes version v1.23, contain at least 1 t3.medium instance and 2-4 mixed spot and on-demand instances, have multi-AZ nodes, and be placed in a new VPC with 3 public and 3 private subnets. Security Groups must be locked down, and nodes must be configured via ASG. The deliverables include a functioning EKS cluster, supporting screenshots, and a README with usage instructions and any challenges faced.
 
-# **AWS Resources structure**
+# **AWS Resource Structure**
 
 ![AWS Structure](https://i.imgur.com/9zd3c63.png)
 
@@ -27,10 +27,10 @@ Creation an Amazon EKS cluster on AWS using Terraform modules. The cluster must 
         │   ├── user-data.tlp
         │   ├── versions.tf
         │   └── variables.tf	
-	└── vpc-tf
+	      └── vpc-tf
             ├── vpc.tf
             ├── outputs.tf
-	    ├── versions.tf
+	          ├── versions.tf
             └── variables.tf
        
 
