@@ -78,15 +78,21 @@ Creation an Amazon EKS cluster on AWS using Terraform modules. The cluster must 
 # :rotating_light: **Policies that I’ve attached to EKS cluster role:**
 
 1.  `AmazonEKSClusterPolicy`: This policy grants the IAM role permissions to manage EKS clusters, including creating, updating, and deleting clusters. It also allows the role to describe and list the resources associated with a cluster, such as worker nodes and endpoint resources.
+
 2.  `AmazonEKSVPCResourceController`: This policy allows the IAM role to create and manage resources that are required by the EKS VPC CNI plugin, which is responsible for networking and security for pods running in the EKS cluster. This policy is necessary to allow the role to create and manage elastic network interfaces (ENIs) and other resources associated with the plugin.
+
 3.  `AmazonEKSServicePolicy`: This policy allows the IAM role to create and manage AWS resources that are required by EKS, such as load balancers and Auto Scaling groups. It also allows the role to describe and list the resources associated with these services.
+
 4.  `AllowExternalDNSUpdatesPolicy`: This policy is a custom policy that allows the IAM role to modify DNS records in an external DNS server, such as Route53, which is commonly used for Kubernetes cluster DNS management. Policy created by Dan.
 
-**Policies that I’ve attached to self-managed nodes role:**
+# **Policies that I’ve attached to self-managed nodes role:**
 
 1.  `AmazonEKSWorkerNodePolicy`: This policy grants the IAM role that is associated with the EC2 instances that run the self-managed worker nodes the permissions necessary to register with the EKS control plane and join the cluster. The policy also allows the worker nodes to access EKS-related resources, such as CloudWatch logs and the EKS endpoint.
+
 2.  `AmazonEKS_CNI_Policy`: This policy provides the required permissions for the self-managed worker nodes to communicate with the AWS VPC CNI plugin, which is responsible for networking and security for pods running in the EKS cluster. This policy allows the worker nodes to create and manage elastic network interfaces (ENIs) and other resources associated with the plugin.
+
 3.  `AmazonEC2ContainerRegistryReadOnly`: This policy grants the self-managed worker nodes read-only access to the Amazon ECR registry, which is necessary to pull container images when running workloads in the EKS cluster.
+
 4.  `EC2InstanceProfileForImageBuilderECRContainerBuilds`: is used to grant permission to the self-managed worker nodes to push and pull images from an Amazon ECR registry using the EC2 Instance Connect feature.
 
 ----------
@@ -94,15 +100,22 @@ Creation an Amazon EKS cluster on AWS using Terraform modules. The cluster must 
 -   EKS cluster creation goal: functioning cluster, launch template configuration for our node instances, auto-scalling group for self-managed nodes.
 
 1.  EKS cluster resource: passing parameters such as name, role_arn (that we created in previous step), version of kubernetes cluster, dependencies to make sure that role will create first and then cluster. VPC_config with parameters subnet_ids and security group, making value thru vars because those values were created in another module.
-2.  Extracting (in data block) Amazon Linux AMI is built on top of Amazon Linux 2, and is configured to serve as the base image for Amazon EKS nodes. The AMI is configured to work with Amazon EKS and it includes the following components: 
+
+2.  Extracting (in data block) Amazon Linux AMI is built on top of Amazon Linux 2, and is configured to serve as the base image for Amazon EKS nodes.
+
 3.  Then we are creating our launch template for the node instances and we will use AMI that we extract in data block. Before that we may also need user_data.tlp file created that will contain user data for our node instances and will set up for us shell script in a boot stage. `iam_instance_profile` block will attach our node role for instances.
+
 4.  The `user_data` script is necessary for properly setting up the EC2 instances in an EKS cluster and enabling them to participate in the cluster's Kubernetes environment. Without it, the EC2 instances would not be properly configured and would not be able to join the EKS cluster. The script performs the following actions:
     1. Connects to the EKS cluster's Kubernetes API server using the --apiserver-endpoint option.
     2. Retrieves the cluster's CA certificate from the Kubernetes API server using the --b64-cluster-ca option.
     3. Joins the worker node to the EKS cluster by running the kubelet and kube-proxy Kubernetes components with appropriate configuration.
+
 5.  `aws_autoscaling_group`: will create EC2 instances for our that will perfectly fit to our cluster as self-managed nodes. `mixed_instances_policy` calls to pass our launch template and down there we’re configuring `instances_distribution` that will do for us OnDemand instances and Spot instances.
-6.  Cluster authentication in data block where we are creating ConfigMap (before that I add kubernetes provider in our [main.tf](https://github.com/312-bc/devops-tools-22c-redhat/blob/cluster-creating-nikita/tf-infra/roots/redhat-eks/main.tf). ConfigMap it’s required kubernetes configuration to join worker nodes via AWS IAM role authentication. We will have our ConfigMap in a output when all resources will be applied. This config map we should create in already created cluster inside. Using `kubectl apply -f` , then if you do `k get nodes -w` you can see how’s nodes attaching to the cluster in real time.
+
+6.  Cluster authentication in data block where we are creating ConfigMap (before that I add kubernetes provider in our [main.tf]. ConfigMap it’s required kubernetes configuration to join worker nodes via AWS IAM role authentication. We will have our ConfigMap in a output when all resources will be applied. This config map we should create in already created cluster inside. Using `kubectl apply -f` , then if you do `k get nodes -w` you can see how’s nodes attaching to the cluster in real time.
+
 7. Tag specification. `"kubernetes.io/cluster/${var.cluster_name}"` and value `"owned"`, is a Kubernetes system tag that is used to identify resources that are owned by a particular EKS cluster. The value of the tag is set to `"owned"`, which means that the resource is owned and managed by the EKS cluster identified by the `"var.cluster_name"` variable. By setting this tag, you can easily identify which resources are owned and managed by your EKS cluster.
+
 8. `"propagate_at_launch"` set to true, which means that the tags will be applied to any resources launched within the EKS cluster. This helps ensure that all resources associated with your EKS cluster are properly labeled and organized.
 
 # :notebook: **Notes:** 
@@ -135,9 +148,8 @@ variable "subnet_id_public" {
 
 In a root module under [roots/redhat-eks] in [main.tf], we are passing our variable and attaching output from VPC.
 
-2. Issue with providers. When I add an new provider - kubernetes. I've had a conflict with providers. The issue I found on the internet is to create versions.tf file under each directory but without field version except for main.tf.
+2. Big struggle with figuring out how to attach the nodes to the EKS cluster, but lots of googling helped solve this.
 
-3. Huge struggling were to attach nodes to the EKS cluster.  
 
 Required parameters to pass it's under kubernetes provider in main.tf.
 
